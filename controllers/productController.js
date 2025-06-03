@@ -146,7 +146,7 @@ const createProduct = asyncHandler(async (req, res) => {
                   ", "
                 )}</p>
                 <div style="margin: 20px 0;">
-                  <a href="http://localhost:3000/products/${
+                  <a href="https://frontend-iota-orcin-43.vercel.app/products/${
                     product.category
                   }/${product.name
             .toLowerCase()

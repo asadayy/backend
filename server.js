@@ -27,7 +27,7 @@ const PORT = process.env.PORT || 5000;
 // Allow React devserver (http://localhost:3000) to send cookies
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: "https://frontend-iota-orcin-43.vercel.app",
     credentials: true,
   })
 );
