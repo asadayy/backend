@@ -3,14 +3,23 @@ const path = require('path');
 const fs = require('fs');
 const { analyzeSkinWithGemini, parseAnalysisResponse } = require('../services/geminiService');
 
-// Get product data
-const getProductData = () => {
+// Get product data from database
+const getProductData = async () => {
   try {
-    const productPath = path.join(__dirname, '..', '..', 'frontend', 'products.json');
-    const rawData = fs.readFileSync(productPath);
-    return JSON.parse(rawData);
+    const Product = require('../models/Product');
+    const products = await Product.find({});
+    
+    // Format products for the gemini service
+    return products.map(product => ({
+      id: product._id.toString(),
+      name: product.name,
+      description: product.description,
+      category: product.category,
+      targets: product.targets,
+      key_ingredients: product.keyIngredients
+    }));
   } catch (error) {
-    console.error('Error reading product data:', error);
+    console.error('Error fetching product data from database:', error);
     return [];
   }
 };
@@ -24,8 +33,8 @@ const analyzeSkin = asyncHandler(async (req, res) => {
   }
 
   try {
-    // Get product data
-    const products = getProductData();
+    // Get product data from database
+    const products = await getProductData();
     
     if (!products || products.length === 0) {
       console.error('No product data available');
