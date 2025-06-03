@@ -32,18 +32,20 @@ const analyzeSkin = asyncHandler(async (req, res) => {
       return res.status(500).json({ message: 'No product data available for analysis' });
     }
     
-    // Process image with Gemini API
-    const imagePath = req.file.path;
-    console.log('Processing image:', imagePath);
+    // Process image with Gemini API using the buffer in memory
+    // instead of a file path
+    console.log('Processing image from memory buffer');
     
     try {
-      const analysisResult = await analyzeSkinWithGemini(imagePath, products);
+      // Get the file buffer and mimetype from multer's memory storage
+      const imageBuffer = req.file.buffer;
+      const mimeType = req.file.mimetype;
+      
+      // Call the updated Gemini service with the buffer instead of a path
+      const analysisResult = await analyzeSkinWithGemini(imageBuffer, products, mimeType);
       
       // Parse the Gemini response
       const parsedResult = parseAnalysisResponse(analysisResult);
-      
-      // Optional: Delete the image file after analysis to save space
-      // fs.unlinkSync(imagePath);
       
       res.status(200).json({
         success: true,
@@ -65,11 +67,7 @@ const analyzeSkin = asyncHandler(async (req, res) => {
       });
     }
   } catch (error) {
-    // Clean up uploaded file in case of error
-    if (req.file && req.file.path) {
-      fs.unlinkSync(req.file.path);
-    }
-    
+    // No need to clean up files since we're using memory storage
     res.status(500);
     throw new Error(`Error analyzing skin image: ${error.message}`);
   }

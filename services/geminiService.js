@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 // Function to analyze skin image using Gemini API
-async function analyzeSkinWithGemini(imagePath, productData) {
+async function analyzeSkinWithGemini(imageBuffer, productData, mimeType) {
   try {
     // Use the dedicated skin analyzer API key
     const apiKey = process.env.SKIN_ANALYZER_API_KEY;
@@ -11,9 +11,9 @@ async function analyzeSkinWithGemini(imagePath, productData) {
       throw new Error("Skin analyzer API key not configured");
     }
 
-    // Verify the image exists
-    if (!fs.existsSync(imagePath)) {
-      throw new Error(`Image file not found at path: ${imagePath}`);
+    // Verify we have a valid image buffer
+    if (!Buffer.isBuffer(imageBuffer)) {
+      throw new Error("Invalid image data: Buffer expected");
     }
 
     // Initialize the Gemini API
@@ -21,13 +21,13 @@ async function analyzeSkinWithGemini(imagePath, productData) {
     // Use the updated model as the previous one was deprecated
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    // Read the image file as base64
-    const imageBytes = fs.readFileSync(imagePath);
-    const imageBase64 = imageBytes.toString("base64");
-    const mimeType =
-      path.extname(imagePath).toLowerCase() === ".png"
-        ? "image/png"
-        : "image/jpeg";
+    // Convert buffer to base64
+    const imageBase64 = imageBuffer.toString("base64");
+    
+    // Use provided mime type or default to jpeg
+    if (!mimeType) {
+      mimeType = "image/jpeg";
+    }
 
     // Validate product data
     if (!Array.isArray(productData)) {
