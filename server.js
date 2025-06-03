@@ -36,14 +36,32 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ───── Session Middleware ──────────────────────────────────────────
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || "replace_this_with_env_var",
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false }, // secure: true if HTTPS
-  })
-);
+// Use session middleware conditionally based on environment
+if (process.env.NODE_ENV === 'production') {
+  // In production, we'll use cookies without server-side session storage
+  // This avoids the MemoryStore warning in production
+  app.use(
+    session({
+      secret: process.env.SESSION_SECRET || "replace_this_with_env_var",
+      resave: false,
+      saveUninitialized: false,
+      cookie: { 
+        secure: true, // Use secure cookies in production
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      }
+    })
+  );
+} else {
+  // In development, use the default MemoryStore (this is fine for development)
+  app.use(
+    session({
+      secret: process.env.SESSION_SECRET || "replace_this_with_env_var",
+      resave: false,
+      saveUninitialized: true,
+      cookie: { secure: false }
+    })
+  );
+}
 
 // ───── Route Mounting ──────────────────────────────────────────────
 app.use("/api/products", productRoutes);
@@ -73,28 +91,41 @@ app.use(
 // ───── Error Handler ──────────────────────────────────────────────
 app.use(errorHandler);
 
-// Create required directories
-const directories = [
-  "uploads", // Temporary directory for multer uploads
-  path.join("..", "frontend", "public", "Ordinary", "Products", "Skincare"),
-  path.join("..", "frontend", "public", "Ordinary", "Products", "Hair & Body"),
-  path.join(
-    "..",
-    "frontend",
-    "public",
-    "Ordinary",
-    "Products",
-    "Sets & Collections"
-  ),
-];
+// Create required directories - only in development environment
+// Skip directory creation in production (Vercel) environment
+if (process.env.NODE_ENV !== 'production') {
+  const directories = [
+    "uploads", // Temporary directory for multer uploads
+    path.join("..", "frontend", "public", "Ordinary", "Products", "Skincare"),
+    path.join("..", "frontend", "public", "Ordinary", "Products", "Hair & Body"),
+    path.join(
+      "..",
+      "frontend",
+      "public",
+      "Ordinary",
+      "Products",
+      "Sets & Collections"
+    ),
+  ];
 
-directories.forEach((dir) => {
-  const dirPath = path.join(__dirname, dir);
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
-    console.log(`Created directory: ${dirPath}`);
+  directories.forEach((dir) => {
+    const dirPath = path.join(__dirname, dir);
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+      console.log(`Created directory: ${dirPath}`);
+    }
+  });
+}
+
+// Ensure uploads directory exists in all environments
+try {
+  if (!fs.existsSync(path.join(__dirname, "uploads"))) {
+    fs.mkdirSync(path.join(__dirname, "uploads"), { recursive: true });
+    console.log(`Created uploads directory`);
   }
-});
+} catch (err) {
+  console.log("Note: Could not create uploads directory. This is expected in some environments.");
+}
 
 // Connect to MongoDB
 mongoose
